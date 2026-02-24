@@ -281,6 +281,7 @@ func parseEMLBodyParts(parsedMsg *netmail.Message, bodybuf *bytes.Buffer, msg *M
 			return fmt.Errorf("failed to parse plain body: %w", err)
 		}
 	case strings.EqualFold(mediatype, TypeMultipartAlternative.String()),
+		strings.EqualFold(mediatype, TypeMultipartSigned.String()),
 		strings.EqualFold(mediatype, TypeMultipartMixed.String()),
 		strings.EqualFold(mediatype, TypeMultipartRelated.String()):
 		if err = parseEMLMultipart(params, bodybuf, msg); err != nil {
@@ -378,6 +379,7 @@ ReadNextPart:
 		if contentTypeSlice, ok := multiPart.Header[HeaderContentType.String()]; ok && len(contentTypeSlice) == 1 {
 			contentType, _ := parseMultiPartHeader(contentTypeSlice[0])
 			if strings.EqualFold(contentType, TypeMultipartRelated.String()) ||
+				strings.EqualFold(contentType, TypeMultipartSigned.String()) ||
 				strings.EqualFold(contentType, TypeMultipartAlternative.String()) {
 				relatedPart := &netmail.Message{
 					Header: netmail.Header(multiPart.Header),

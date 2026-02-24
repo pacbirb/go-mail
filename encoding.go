@@ -153,6 +153,9 @@ const (
 	// formats.
 	TypeMultipartAlternative ContentType = "multipart/alternative"
 
+	// TypeMultipartSigned represents the MIME type for a multipart message that contains a signature part.
+	TypeMultipartSigned ContentType = "multipart/signed"
+
 	// TypeMultipartMixed represents the MIME type for a multipart message containing different parts.
 	TypeMultipartMixed ContentType = "multipart/mixed"
 
