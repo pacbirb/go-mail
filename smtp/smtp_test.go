@@ -39,7 +39,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wneessen/go-mail/log"
+	"github.com/pacbirb/go-mail/log"
 )
 
 const (

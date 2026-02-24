@@ -24,8 +24,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/wneessen/go-mail/log"
-	"github.com/wneessen/go-mail/smtp"
+	"github.com/pacbirb/go-mail/log"
+	"github.com/pacbirb/go-mail/smtp"
 )
 
 const (
