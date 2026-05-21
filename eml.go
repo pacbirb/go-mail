@@ -395,12 +395,32 @@ ReadNextPart:
 			}
 		}
 
-		// Content-Disposition header means we have an attachment or embed
+		// preload reusable variables
+		var (
+			contentType string
+			optional    map[string]string
+			ctparsed    bool
+		)
+		// mpctok will be checked multiple times in different contexts
+		multiPartContentType, mpctok := multiPart.Header[HeaderContentType.String()]
+
 		if contentDisposition, ok := multiPart.Header[HeaderContentDisposition.String()]; ok {
-			if err = parseEMLAttachmentEmbed(contentDisposition, multiPart, msg); err != nil {
-				return fmt.Errorf("failed to parse attachment/embed: %w", err)
+			if !mpctok {
+				if err = parseEMLAttachmentEmbed(contentDisposition, multiPart, msg); err != nil {
+					return fmt.Errorf("failed to parse attachment/embed: %w", err)
+				}
+				goto ReadNextPart
 			}
-			goto ReadNextPart
+
+			contentType, optional = parseMultiPartHeader(multiPartContentType[0])
+			if !strings.EqualFold(contentType, TypeTextPlain.String()) &&
+				!strings.EqualFold(contentType, TypeTextHTML.String()) {
+				if err = parseEMLAttachmentEmbed(contentDisposition, multiPart, msg); err != nil {
+					return fmt.Errorf("failed to parse attachment/embed: %w", err)
+				}
+				goto ReadNextPart
+			}
+			ctparsed = true
 		}
 
 		multiPartData, mperr := io.ReadAll(multiPart)
@@ -409,14 +429,22 @@ ReadNextPart:
 			return fmt.Errorf("failed to read multipart: %w", err)
 		}
 
-		multiPartContentType, ok := multiPart.Header[HeaderContentType.String()]
-		if !ok {
+		// check if multiPartContentType is valid
+		if !mpctok {
 			return fmt.Errorf("failed to get content-type from part")
 		}
-		contentType, optional := parseMultiPartHeader(multiPartContentType[0])
+
+		// if we haven't parsed the contentType yet, do it now
+		if !ctparsed {
+			contentType, optional = parseMultiPartHeader(multiPartContentType[0])
+		}
+
+		// if the contentType is multipart/related, we need to parse the next part
 		if strings.EqualFold(contentType, TypeMultipartRelated.String()) {
 			goto ReadNextPart
 		}
+
+		// create a new part
 		part := msg.newPart(ContentType(contentType))
 		if charset, ok := optional["charset"]; ok {
 			part.SetCharset(Charset(charset))
