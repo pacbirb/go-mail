@@ -175,6 +175,9 @@ const (
 	// TypeTextPlain represents the MIME type for plain text content.
 	TypeTextPlain ContentType = "text/plain"
 
+	// TypeText represents the MIME type for text content. This is a custom type that is not defined in the MIME specification.
+	TypeText ContentType = "text"
+
 	// TypeSMIMESigned represents the MIME type for S/MIME singed messages.
 	TypeSMIMESigned ContentType = `application/pkcs7-signature; name="smime.p7s"`
 )

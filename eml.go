@@ -276,6 +276,7 @@ func parseEMLBodyParts(parsedMsg *netmail.Message, bodybuf *bytes.Buffer, msg *M
 
 	switch {
 	case strings.EqualFold(mediatype, TypeTextPlain.String()),
+		strings.EqualFold(mediatype, TypeText.String()),
 		strings.EqualFold(mediatype, TypeTextHTML.String()):
 		if err = parseEMLBodyPlain(mediatype, parsedMsg, bodybuf, msg); err != nil {
 			return fmt.Errorf("failed to parse plain body: %w", err)
@@ -414,6 +415,7 @@ ReadNextPart:
 
 			contentType, optional = parseMultiPartHeader(multiPartContentType[0])
 			if !strings.EqualFold(contentType, TypeTextPlain.String()) &&
+				!strings.EqualFold(contentType, TypeText.String()) &&
 				!strings.EqualFold(contentType, TypeTextHTML.String()) {
 				if err = parseEMLAttachmentEmbed(contentDisposition, multiPart, msg); err != nil {
 					return fmt.Errorf("failed to parse attachment/embed: %w", err)
