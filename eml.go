@@ -218,6 +218,28 @@ func parseEMLHeaders(mailHeader *netmail.Header, msg *Msg) error {
 		switch {
 		case errors.Is(err, netmail.ErrHeaderNotPresent):
 			msg.SetDate()
+		case err.Error() == "mail: header could not be parsed":
+			// if mail header could not be parsed returned,
+			// attempt to check if trailing zone is 3-digit offset instead of 4-digit offset
+			dateString := mailHeader.Get("Date")
+			if len(dateString) >= 5 {
+				suffix := dateString[len(dateString)-5:]
+				if suffix[0] == byte(' ') {
+					var newSuffix string = fmt.Sprintf(" %s0%s", string(suffix[1]), suffix[2:])
+					// replace suffix with new suffix
+					dateString = dateString[:len(dateString)-5] + newSuffix
+
+					// try to parse date again
+					date, errSub := netmail.ParseDate(dateString)
+					if errSub != nil {
+						return errors.Join(fmt.Errorf("failed to parse EML date: %w", err), errSub)
+					}
+					msg.SetDateWithValue(date)
+					break
+				}
+			}
+
+			return fmt.Errorf("failed to parse EML date: %w", err)
 		default:
 			return fmt.Errorf("failed to parse EML date: %w", err)
 		}
