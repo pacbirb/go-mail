@@ -219,27 +219,43 @@ func parseEMLHeaders(mailHeader *netmail.Header, msg *Msg) error {
 		case errors.Is(err, netmail.ErrHeaderNotPresent):
 			msg.SetDate()
 		case err.Error() == "mail: header could not be parsed":
-			// if mail header could not be parsed returned,
-			// attempt to check if trailing zone is 3-digit offset instead of 4-digit offset
+			// if mail header could not be parsed
+			// attempt to check if date string is missing a digit in the zone offset or missing the entire zone offset
 			dateString := mailHeader.Get("Date")
-			if len(dateString) >= 5 {
-				suffix := dateString[len(dateString)-5:]
-				if suffix[0] == byte(' ') {
-					var newSuffix string = fmt.Sprintf(" %s0%s", string(suffix[1]), suffix[2:])
-					// replace suffix with new suffix
-					dateString = dateString[:len(dateString)-5] + newSuffix
-
-					// try to parse date again
-					date, errSub := netmail.ParseDate(dateString)
-					if errSub != nil {
-						return errors.Join(fmt.Errorf("failed to parse EML date: %w", err), errSub)
-					}
-					msg.SetDateWithValue(date)
-					break
-				}
+			if len(dateString) == 0 {
+				return fmt.Errorf("failed to parse EML date: %w", err)
 			}
 
-			return fmt.Errorf("failed to parse EML date: %w", err)
+			datePieces := strings.Split(dateString, " ")
+			if len(datePieces) <= 1 {
+				return fmt.Errorf("failed to parse EML date: %w", err)
+			}
+
+			zoneOffset := datePieces[len(datePieces)-1]
+			if len(zoneOffset) <= 1 {
+				return fmt.Errorf("failed to parse EML date: %w", err)
+			}
+
+			if !strings.HasPrefix(zoneOffset, "+") && !strings.HasPrefix(zoneOffset, "-") {
+				// check if the last piece is a zone offset
+				// if not, add a UTC zone offset
+				dateString = fmt.Sprintf("%s +0000", dateString)
+			} else if len(zoneOffset) == 4 {
+				// check if the zone offset is 4 digits
+				// if not, add a 0 after +/-
+				zoneOffset = fmt.Sprintf("%s0%s", zoneOffset[:1], zoneOffset[1:])
+				// replace the zone offset with the new zone offset
+				datePieces[len(datePieces)-1] = zoneOffset
+				// join the date pieces back together
+				dateString = strings.Join(datePieces, " ")
+			}
+
+			// try to parse date again
+			date, errSub := netmail.ParseDate(dateString)
+			if errSub != nil {
+				return errors.Join(fmt.Errorf("failed to parse EML date: %w", err), errSub)
+			}
+			msg.SetDateWithValue(date)
 		default:
 			return fmt.Errorf("failed to parse EML date: %w", err)
 		}
